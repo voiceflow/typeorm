@@ -252,6 +252,8 @@ export class MongoDriver implements Driver {
         return new Promise<void>((ok, fail) => {
             const options = DriverUtils.buildMongoDBDriverOptions(this.options)
 
+            options
+
             this.mongodb.MongoClient.connect(
                 this.buildConnectionUrl(options),
                 this.buildConnectionOptions(options),
@@ -569,7 +571,9 @@ export class MongoDriver implements Driver {
      * Build connection options from MongoConnectionOptions
      */
     protected buildConnectionOptions(options: { [key: string]: any }): any {
-        const mongoOptions: any = {}
+        const mongoOptions: any = {
+            monitorCommands: !!options.logger
+        }
 
         for (let index = 0; index < this.validOptionNames.length; index++) {
             const optionName = this.validOptionNames[index]

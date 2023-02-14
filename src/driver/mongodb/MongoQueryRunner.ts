@@ -114,6 +114,8 @@ export class MongoQueryRunner implements QueryRunner {
         this.connection = connection
         this.databaseConnection = databaseConnection
         this.broadcaster = new Broadcaster(this)
+
+        this.setupLogger();
     }
 
     // -------------------------------------------------------------------------
@@ -1329,5 +1331,34 @@ export class MongoQueryRunner implements QueryRunner {
         return this.databaseConnection
             .db(this.connection.driver.database!)
             .collection(collectionName)
+    }
+
+    // -------------------------------------------------------------------------
+    // Private Methods
+    // -------------------------------------------------------------------------
+
+    private setupLogger() {
+        this.databaseConnection.on('commandStarted', (event) => {
+            this.connection.logger.logQuery(event.commandName, [event.command], this)
+        })
+        this.databaseConnection.on('commandSucceeded', (event) => {
+            const maxQueryExecutionTime = this.connection.options.maxQueryExecutionTime
+            const queryExecutionTime = event.duration
+
+            if (
+                maxQueryExecutionTime &&
+                queryExecutionTime > maxQueryExecutionTime
+            ) {
+                this.connection.logger.logQuerySlow(
+                    queryExecutionTime,
+                    event.commandName,
+                    [event.reply],
+                    this,
+                )
+            }
+        })
+        this.databaseConnection.on('commandFailed', (event) => {
+            this.connection.logger.logQueryError(event.failure, event.commandName)
+        })
     }
 }
